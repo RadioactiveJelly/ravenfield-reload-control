@@ -1,7 +1,12 @@
 -- Register the behaviour
 behaviour("GlobalReloadSystem")
 
-function GlobalReloadSystem:Start()
+function GlobalReloadSystem:Awake()
+	self.gameObject.name = "ReloadControl"
+	self.ignoreConfig = false
+end
+
+function GlobalReloadSystem:Init()
 	-- Run when behaviour is created
 	GameEvents.onActorSpawn.AddListener(self,"onActorSpawn")
 
@@ -29,18 +34,21 @@ function GlobalReloadSystem:Start()
 		end
 	end
 
-	self.globalReloadSpeed = self.script.mutator.GetConfigurationFloat("reloadSpeed")
-
-	self.weaponData = {}
-	self:ParseString(self.script.mutator.GetConfigurationString("line1"))
-	self:ParseString(self.script.mutator.GetConfigurationString("line2"))
-	self:ParseString(self.script.mutator.GetConfigurationString("line3"))
-	self:ParseString(self.script.mutator.GetConfigurationString("line4"))
-	self:ParseString(self.script.mutator.GetConfigurationString("line5"))
-
-	self.specificAffectsGeneral = self.script.mutator.GetConfigurationBool("specificAffectsGeneral")
-
+	self.script.AddValueMonitor("monitorCurrentWeapon", "onChangeWeapon")
 	self.script.AddValueMonitor("monitorReloading", "onReloadingStateChanged")
+end
+
+function GlobalReloadSystem:DefaultConfigs()
+	self.weaponData = {}
+	self.globalReloadSpeed = 1
+	self.specificAffectsGeneral = true
+end
+
+function GlobalReloadSystem:SetWeaponConfigs(weaponConfigs)
+	self.weaponData = {}
+	for i = 1, #weaponConfigs, 1 do
+		self:ParseString(weaponConfigs[i])
+	end
 end
 
 --Parse string lines for weapon data
@@ -105,4 +113,23 @@ function GlobalReloadSystem:GetWeaponReloadMultiplier(name)
 	end
 
 	return multiplier
+end
+
+function GlobalReloadSystem:SetGlobalReloadSpeed(val)
+	self.globalReloadSpeed = val
+end
+
+function GlobalReloadSystem:ClearConfigMultipliers()
+	self.weaponData = {}
+end
+
+function GlobalReloadSystem:monitorCurrentWeapon()
+	return Player.actor.activeWeapon
+end
+
+function GlobalReloadSystem:onChangeWeapon()
+	if Player.actor.activeWeapon == nil then
+		return
+	end
+	Player.actor.activeWeapon.animator.speed = 1
 end
